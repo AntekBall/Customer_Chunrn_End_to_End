@@ -1,0 +1,64 @@
+# Python environments and bytecode
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Local environment variables (keep the example template)
+.env
+.env.*
+!.env.example
+
+# Datasets: exclude customer data from version control
+/data/raw/
+/data/processed/
+
+# Local analytical databases
+*.duckdb
+*.duckdb.wal
+
+# MLflow tracking, artifacts, and local databases
+/mlruns/
+/mlartifacts/
+*.db
+*.db-shm
+*.db-wal
+
+# Generated models and reports
+/artifacts/
+/models/
+/reports/
+catboost_info/
+*.pkl
+*.pickle
+*.joblib
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Testing, coverage, linting, and type-checking caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# Python packaging outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+
+# Local editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
