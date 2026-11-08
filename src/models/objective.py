@@ -42,7 +42,17 @@ def make_objective(
     config: TrainingConfig,
     training_data: pd.DataFrame,
     experiment_id: str,
-) -> Callable[[optuna.trial.Trial], float]:
+    *,
+    positive_class_weight: float = 1.0,
+) -> Callable[[optuna.trial.Trial | optuna.trial.FixedTrial], float]:
+    if (
+        isinstance(positive_class_weight, bool)
+        or not isinstance(positive_class_weight, (int, float))
+        or not np.isfinite(positive_class_weight)
+        or positive_class_weight <= 0
+    ):
+        raise ValueError("positive_class_weight must be finite and positive.")
+
     config = config.model_copy(deep=True)
 
     if model_name not in MODEL_NAMES:
@@ -91,7 +101,9 @@ def make_objective(
 
     splits = list(cv.split(features, target))
 
-    def objective(trial: optuna.trial.Trial) -> float:
+    def objective(
+        trial: optuna.trial.Trial | optuna.trial.FixedTrial,
+    ) -> float:
         with mlflow.start_run(
             experiment_id=experiment_id,
             run_name=f"{model_name}_trial_{trial.number}",
@@ -128,6 +140,8 @@ def make_objective(
                 mlflow.log_params({
                     "random_seed": config.random_seed,
                     "cv_folds": fold_count,
+                    "positive_class_weight": positive_class_weight,
+                    "sample_weight_normalization": "fit_fold_mean_one",
                     "training_rows": len(features),
                     **template.named_steps["classifier"].get_params(),
                 })
@@ -143,10 +157,23 @@ def make_objective(
                         warnings.simplefilter("error", ConvergenceWarning)
 
                         started = perf_counter()
-                        model.fit(
-                            features.iloc[fit_indices],
-                            target.iloc[fit_indices],
-                        )
+                        fit_features = features.iloc[fit_indices]
+                        fit_target = target.iloc[fit_indices]
+
+                        if positive_class_weight == 1.0:
+                            model.fit(fit_features, fit_target)
+                        else:
+                            weights = np.where(
+                                fit_target.to_numpy() == 1,
+                                positive_class_weight,
+                                1.0,
+                            )
+                            weights /= weights.mean()
+                            model.fit(
+                                fit_features,
+                                fit_target,
+                                classifier__sample_weight=weights,
+                            )
                         fit_seconds = perf_counter() - started
 
                     positive_class = np.flatnonzero(model.classes_ == 1)
