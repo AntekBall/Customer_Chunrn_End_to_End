@@ -1,4 +1,7 @@
 import json
+import shutil
+import subprocess
+import zipfile
 
 import pandas as pd
 import pytest
@@ -6,6 +9,7 @@ from fastapi.testclient import TestClient
 
 from src.data.dashboard import open_portfolio
 from src.data.demo import export_demo
+from src.data.loader import PROJECT_ROOT
 from src.models.artifacts import file_sha256
 from src.models.serving_bundle import export_bundle, load_bundle
 from src.web import create_app
@@ -110,3 +114,34 @@ def test_corrupt_demo_reference_is_rejected(source, tmp_path):
 def test_invalid_demo_seed(source, tmp_path, seed):
     with pytest.raises(ValueError, match="seed"):
         export_demo(source, tmp_path / "bad", rows=16, seed=seed)
+
+
+@pytest.mark.parametrize("autocrlf", ["true", "false"])
+def test_public_bundle_survives_git_storage(tmp_path, autocrlf):
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    shutil.copyfile(PROJECT_ROOT / ".gitattributes", repository / ".gitattributes")
+    original = PROJECT_ROOT / "deploy" / "demo_bundle"
+    shutil.copytree(original, repository / "deploy" / "demo_bundle")
+
+    def git(*args):
+        return subprocess.check_output(
+            ["git", "-C", str(repository), *args], stderr=subprocess.STDOUT,
+        )
+
+    git("init")
+    git("config", "core.autocrlf", autocrlf)
+    git("add", ".")
+    tree = git("write-tree").decode().strip()
+    archive = tmp_path / "bundle.zip"
+    git("archive", "--format=zip", f"--output={archive}", tree)
+    checkout = tmp_path / "checkout"
+    with zipfile.ZipFile(archive) as saved:
+        saved.extractall(checkout)
+    restored = checkout / "deploy" / "demo_bundle"
+    for path in original.rglob("*"):
+        if path.is_file():
+            assert (restored / path.relative_to(original)).read_bytes() == path.read_bytes()
+    load_bundle(restored)
+    with TestClient(create_app(bundle_directory=restored, port=18082)) as client:
+        assert client.get("/health").json()["portfolio_customers"] == 10_000
