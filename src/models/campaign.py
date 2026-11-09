@@ -1,6 +1,7 @@
 """Assumption-based retention economics, not measured campaign effects."""
 
 from dataclasses import asdict, dataclass
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -28,6 +29,36 @@ class CampaignScenario:
                 raise ValueError(f"{name} must be <= 1.")
         if self.retained_months <= 0:
             raise ValueError("retained_months must be positive.")
+
+
+def select_campaign_customers(
+    scored: pd.DataFrame,
+    scenario: CampaignScenario,
+    *,
+    ranking: Literal["expected_net_value", "churn_probability"] = "expected_net_value",
+) -> pd.DataFrame:
+    """Select from the full scored population, before any dashboard filtering."""
+    if ranking not in {"expected_net_value", "churn_probability"}:
+        raise ValueError(f"Unsupported campaign ranking: {ranking}")
+    required = {"customer_id", "churn_probability", "expected_net_value"}
+    if not scored.columns.is_unique or not required.issubset(scored.columns):
+        raise ValueError("Expected campaign-scored columns.")
+    ids = scored["customer_id"]
+    if not ids.map(
+        lambda value: isinstance(value, str) and bool(value.strip())
+    ).all() or not ids.is_unique:
+        raise ValueError("Customer IDs must be unique nonblank strings.")
+    numeric = scored[["churn_probability", "expected_net_value"]].to_numpy(dtype=float)
+    if (
+        not np.isfinite(numeric).all()
+        or (numeric[:, 0] < 0).any()
+        or (numeric[:, 0] > 1).any()
+    ):
+        raise ValueError("Invalid campaign scores.")
+    capacity = int(np.floor(scenario.capacity_fraction * len(scored)))
+    return scored.loc[scored["expected_net_value"] > 0].sort_values(
+        [ranking, "customer_id"], ascending=[False, True]
+    ).head(capacity)
 
 
 def compare_policies(customers, probabilities, scenario):
@@ -73,15 +104,14 @@ def compare_policies(customers, probabilities, scenario):
         raise ValueError("Scenario calculations overflowed.")
 
     capacity = int(np.floor(scenario.capacity_fraction * len(customers)))
-    eligible = scored.loc[scored["expected_net_value"] > 0]
     selections = {"no_contact": scored.iloc[:0]}
     for policy, ranking in (
         ("risk_positive_only", "churn_probability"),
         ("expected_profit_positive_only", "expected_net_value"),
     ):
-        selections[policy] = eligible.sort_values(
-            [ranking, "customer_id"], ascending=[False, True]
-        ).head(capacity)
+        selections[policy] = select_campaign_customers(
+            scored, scenario, ranking=ranking
+        )
 
     results = []
     for policy, selected in selections.items():
