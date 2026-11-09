@@ -13,6 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.api.campaign import register_campaign_routes
 from src.data.dashboard import PortfolioFilters, open_portfolio, summarize_portfolio
 from src.data.loader import PROJECT_ROOT
 from src.models.explain import ChurnExplainer
@@ -315,6 +316,7 @@ def create_app(
             ),
         }
 
+    register_campaign_routes(app, _services)
     return app
 
 
