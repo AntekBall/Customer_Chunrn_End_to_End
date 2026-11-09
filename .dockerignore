@@ -1,0 +1,11 @@
+# Allow only serving source and locked dependencies into the image context.
+**
+!Dockerfile
+!pyproject.toml
+!uv.lock
+!src/
+!src/**
+!sql/
+!sql/**
+**/__pycache__/
+**/*.py[cod]
