@@ -229,6 +229,42 @@ def main():
                 "positive_expected_value_customers",
                 int((scored["expected_net_value"] > 0).sum()),
             )
+            from experiments.sensitivity_analysis import (
+                CONTACT_COSTS,
+                PREVENTION_PROBABILITIES,
+                RETAINED_MONTHS,
+                advantage_figure,
+                run_sensitivity,
+            )
+
+            sensitivity = run_sensitivity(
+                validation[["customer_id", "monthlycharges"]],
+                probabilities,
+                scenario,
+            )
+            mlflow.log_text(
+                sensitivity.to_csv(index=False),
+                "sensitivity/scenario_comparison.csv",
+            )
+            mlflow.log_text(
+                advantage_figure(sensitivity).to_html(
+                    include_plotlyjs=True,
+                    full_html=True,
+                ),
+                "sensitivity/profit_advantage_6months.html",
+            )
+            mlflow.log_dict(
+                {
+                    "contact_costs": list(CONTACT_COSTS),
+                    "prevention_probabilities": list(PREVENTION_PROBABILITIES),
+                    "retained_months": list(RETAINED_MONTHS),
+                    "gross_margin": scenario.gross_margin,
+                    "capacity_fraction": scenario.capacity_fraction,
+                    "audience_selection": "Reselected independently per scenario",
+                    "interpretation": "Assumption-based estimates, not measured ROI",
+                },
+                "sensitivity/grid_definition.json",
+            )
             print(f"MLflow scenario run: {run.info.run_id}")
         print("ASSUMPTION-BASED EXPECTED VALUES, NOT MEASURED CAMPAIGN RETURNS")
         print(pd.Series(asdict(scenario)).to_string())

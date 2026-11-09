@@ -13,7 +13,7 @@ def customers(charges):
 
 
 def test_exact_economics_and_ranking():
-    scenario = CampaignScenario(capacity_fraction=0.5)
+    scenario = CampaignScenario(contact_cost=10.0, capacity_fraction=0.5)
     scored, summary = compare_policies(
         customers([10, 100, 300, 20]), [0.9, 0.5, 0.3, 0.1], scenario
     )
@@ -31,7 +31,7 @@ def test_exact_economics_and_ranking():
 def test_profit_ranking_beats_risk_at_same_capacity():
     _, summary = compare_policies(
         customers([100, 300]), [0.5, 0.3],
-        CampaignScenario(capacity_fraction=0.5),
+        CampaignScenario(contact_cost=10.0, capacity_fraction=0.5),
     )
     results = summary.set_index("policy")
     assert results.loc["risk_positive_only", "expected_net_value"] == pytest.approx(2)
@@ -202,7 +202,22 @@ def test_main_logs_scenario_with_temporary_model(tmp_path, monkeypatch, capsys):
         ] == 2
         assert runs[0].data.metrics[
             "expected_profit_positive_only_expected_net_value"
-        ] == pytest.approx(4)
+        ] == pytest.approx(20)
+        assert float(runs[0].data.params["contact_cost"]) == 2.0
+        grid = module.read_json(
+            client, runs[0].info.run_id, "sensitivity/grid_definition.json"
+        )
+        assert grid["contact_costs"] == [1.0, 2.0, 5.0, 10.0]
+        csv_path = client.download_artifacts(
+            runs[0].info.run_id, "sensitivity/scenario_comparison.csv"
+        )
+        assert len(pd.read_csv(csv_path)) == 108
+        html_path = client.download_artifacts(
+            runs[0].info.run_id, "sensitivity/profit_advantage_6months.html"
+        )
+        from pathlib import Path
+
+        assert "plotly" in Path(html_path).read_text(encoding="utf-8")
         policy = module.read_json(client, runs[0].info.run_id, "policy_definition.json")
         assert policy["eligibility"] == "expected_net_value > 0"
         assert "NOT MEASURED" in capsys.readouterr().out
