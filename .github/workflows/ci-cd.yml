@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests and committed demo integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      MLFLOW_DISABLE_AGENT_HINT: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.7"
+          python-version: "3.12.12"
+          enable-cache: true
+      - name: Install locked dependencies
+        run: uv sync --locked --group dev
+      - name: Run synthetic tests and Git bundle round-trip checks
+        run: uv run --locked python -m pytest tests -q
+
+  docker:
+    name: Linux Docker build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CHURN_LOCAL_BUNDLE: ./deploy/demo_bundle
+      CHURN_API_PORT: "18000"
+      CHURN_DASH_PORT: "18050"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build serving image
+        run: docker compose build api
+      - name: Start services with committed demo bundle
+        run: docker compose up --no-build --wait --wait-timeout 180
+      - name: Verify portfolio and dashboard API connectivity
+        run: |
+          docker compose exec -T dashboard python -c "
+          import httpx
+          from src.data.dashboard import PortfolioFilters
+          from src.frontend.client import PortfolioClient
+          from src.frontend.scoring import DEMO_CUSTOMER
+          api = PortfolioClient('http://api:8000')
+          summary = api.summary(PortfolioFilters())
+          assert summary.overview.customers == 10000
+          explanation = api.explain(DEMO_CUSTOMER)
+          assert len(explanation.contributions) == 28
+          response = httpx.get('http://127.0.0.1:8050/_dash-layout')
+          response.raise_for_status()
+          assert 'dashboard-tab' in response.text
+          print('Docker verified: 10,000 customers, native SHAP, dashboard and internal API connectivity')
+          "
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop services
+        if: always()
+        run: docker compose down
