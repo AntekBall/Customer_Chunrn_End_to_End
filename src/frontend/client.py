@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.api.campaign import SimulationRequest, SimulationResponse
 from src.data.dashboard import PortfolioFilters
 from src.data.portfolio import REVENUE_SEGMENTS, RISK_SEGMENTS
 from src.models.pipeline import FEATURE_COLUMNS
@@ -139,6 +140,70 @@ class PortfolioClient:
         ):
             raise APIError("The API returned an explanation for different customer inputs.")
         return explanation
+
+    def simulate(self, request: SimulationRequest) -> SimulationResponse:
+        response = self._request(
+            "POST", "campaign/simulate", json=request.model_dump(mode="json"),
+        )
+        try:
+            result = SimulationResponse.model_validate(response.json())
+            expected = {(revenue, risk) for revenue in REVENUE_SEGMENTS for risk in RISK_SEGMENTS}
+            actual = {
+                (cell.revenue_segment, cell.risk_segment) for cell in result.displayed_segments
+            }
+            if (
+                len(result.displayed_segments) != 12 or actual != expected
+                or result.scenario != request.scenario
+                or result.display_filters != request.display_filters
+                or result.policy != "expected_profit_positive_only"
+                or result.selection_scope != "full_snapshot_before_display_filters"
+                or result.capacity_customers != int(
+                    request.scenario.capacity_fraction * result.global_summary.customers
+                )
+                or result.unused_capacity != (
+                    result.capacity_customers - result.global_summary.selected_customers
+                )
+                or result.unused_capacity < 0
+            ):
+                raise ValueError("Inconsistent simulation metadata.")
+            for totals in (result.global_summary, result.displayed_summary):
+                if not 0 <= totals.selected_customers <= totals.eligible_customers <= totals.customers:
+                    raise ValueError("Invalid campaign counts.")
+                if not math.isclose(
+                    totals.campaign_cost,
+                    totals.selected_customers * request.scenario.contact_cost,
+                    rel_tol=1e-8, abs_tol=1e-6,
+                ) or not math.isclose(
+                    totals.expected_net_value,
+                    totals.expected_retained_contribution - totals.campaign_cost,
+                    rel_tol=1e-8, abs_tol=1e-6,
+                ):
+                    raise ValueError("Campaign economics do not reconcile.")
+                if totals.campaign_cost == 0:
+                    if totals.scenario_roi is not None:
+                        raise ValueError("Zero-cost ROI must be undefined.")
+                elif totals.scenario_roi is None or not math.isclose(
+                    totals.scenario_roi, totals.expected_net_value / totals.campaign_cost,
+                    rel_tol=1e-8, abs_tol=1e-6,
+                ):
+                    raise ValueError("ROI does not reconcile.")
+            for column in (
+                "customers", "eligible_customers", "selected_customers",
+                "eligible_expected_net_value",
+            ):
+                if not math.isclose(
+                    sum(getattr(cell, column) for cell in result.displayed_segments),
+                    getattr(result.displayed_summary, column), rel_tol=1e-8, abs_tol=1e-6,
+                ):
+                    raise ValueError("Campaign cells do not reconcile.")
+            if not math.isclose(
+                sum(cell.selected_expected_net_value for cell in result.displayed_segments),
+                result.displayed_summary.expected_net_value, rel_tol=1e-8, abs_tol=1e-6,
+            ):
+                raise ValueError("Selected cell values do not reconcile.")
+        except ValueError as error:
+            raise APIError("The API returned an invalid campaign simulation response.") from error
+        return result
 
     def _request(
         self, method: str, endpoint: str, *,

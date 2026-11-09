@@ -1,4 +1,4 @@
-"""Portfolio Overview and Customer Scoring dashboard.
+"""Portfolio Overview, Customer Scoring and Financial Simulator dashboard.
 
 Start the API first, then run `uv run python -m src.frontend.app`.
 CHURN_API_URL defaults to http://127.0.0.1:8000. This frontend performs no model
@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from src.data.dashboard import PortfolioFilters
 from src.data.portfolio import REVENUE_SEGMENTS, RISK_SEGMENTS
 from src.frontend.categories import CATEGORY_OPTIONS
+from src.frontend.financial import financial_layout, register_financial_callbacks
 from src.frontend.client import APIError, PortfolioClient, Summary
 from src.frontend.scoring import register_scoring_callbacks, scoring_layout
 
@@ -232,9 +233,11 @@ def _layout():
         dcc.Tabs(id="dashboard-tab", value="portfolio", children=[
             dcc.Tab(label="Portfolio Overview", value="portfolio"),
             dcc.Tab(label="Customer Scoring", value="scoring"),
+            dcc.Tab(label="Financial Simulator", value="financial"),
         ], className="dashboard-tabs"),
         html.Div(_portfolio_layout(), id="portfolio-panel"),
         html.Div(scoring_layout(), id="scoring-panel", style={"display": "none"}),
+        html.Div(financial_layout(), id="financial-panel", style={"display": "none"}),
     ])
 
 
@@ -251,12 +254,14 @@ def create_app(client: PortfolioClient | None = None) -> Dash:
 
     @app.callback(
         Output("portfolio-panel", "style"), Output("scoring-panel", "style"),
+        Output("financial-panel", "style"),
         Input("dashboard-tab", "value"),
     )
     def switch_tab(tab):
         return (
             {"display": "block" if tab == "portfolio" else "none"},
             {"display": "block" if tab == "scoring" else "none"},
+            {"display": "block" if tab == "financial" else "none"},
         )
 
     @app.callback(
@@ -324,6 +329,7 @@ def create_app(client: PortfolioClient | None = None) -> Dash:
         return _kpis(summary), _heatmap(summary, metric), _table_rows(summary), note, provenance
 
     register_scoring_callbacks(app, api)
+    register_financial_callbacks(app, api)
     return app
 
 

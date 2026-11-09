@@ -40,6 +40,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid #73b6c3; outline-
 .score-fieldset legend { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
 #score-card { margin: 18px 0; }
 #score-waterfall { margin: 18px 0; }
+.finance-filter-heading { margin-top: 28px; }
+#finance-matrix { margin: 20px 0; }
 @media (max-width: 1000px) {
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
