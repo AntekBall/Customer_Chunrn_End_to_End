@@ -18,6 +18,7 @@ from src.data.dashboard import PortfolioFilters, open_portfolio, summarize_portf
 from src.data.loader import PROJECT_ROOT
 from src.models.explain import ChurnExplainer
 from src.models.predict import ChurnPredictor
+from src.models.serving_bundle import load_bundle
 
 
 logger = logging.getLogger(__name__)
@@ -190,10 +191,27 @@ def _services(request: Request) -> Services:
 
 def create_app(
     *,
+    bundle_directory: Path | None = None,
     tracking_directory: Path | None = None,
     portfolio_directory: Path | None = None,
     final_test_run_id: str | None = None,
 ) -> FastAPI:
+    bundle_setting = os.environ.get("CHURN_BUNDLE_DIRECTORY")
+    if bundle_setting is not None and not bundle_setting.strip():
+        raise ValueError("CHURN_BUNDLE_DIRECTORY must not be blank.")
+    bundle = bundle_directory if bundle_directory is not None else (
+        Path(bundle_setting) if bundle_setting else None
+    )
+    if bundle is not None and (
+        any(value is not None for value in (
+            tracking_directory, portfolio_directory, final_test_run_id,
+        ))
+        or any(name in os.environ for name in (
+            "CHURN_TRACKING_DIRECTORY", "CHURN_PORTFOLIO_DIRECTORY",
+            "CHURN_FINAL_TEST_RUN_ID",
+        ))
+    ):
+        raise ValueError("Choose bundle configuration or MLflow configuration, not both.")
     tracking = tracking_directory if tracking_directory is not None else Path(
         os.environ.get("CHURN_TRACKING_DIRECTORY", str(PROJECT_ROOT / "mlruns"))
     )
@@ -209,11 +227,17 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        predictor = ChurnPredictor.from_final_test(
-            tracking, final_test_run_id=selected_run,
-        )
+        if bundle is not None:
+            loaded = load_bundle(bundle)
+            predictor = loaded.predictor
+            snapshot_directory = loaded.portfolio_directory
+        else:
+            predictor = ChurnPredictor.from_final_test(
+                tracking, final_test_run_id=selected_run,
+            )
+            snapshot_directory = portfolio
         explainer = ChurnExplainer(predictor)
-        with open_portfolio(portfolio) as connection:
+        with open_portfolio(snapshot_directory) as connection:
             versions = connection.sql("""
                 SELECT DISTINCT model_run_id, freeze_run_id, final_test_run_id
                 FROM portfolio
