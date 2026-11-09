@@ -181,3 +181,8 @@ class ChurnPredictor:
         finally:
             mlflow.set_tracking_uri(previous_uri)
         return cls(model, provenance)
+    
+    @property
+    def model(self) -> ProbabilityModel:
+        """Fitted model for companion explainability; callers must not refit it."""
+        return self._model
