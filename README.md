@@ -417,6 +417,12 @@ monthlycharges * gross_margin * retained_months
 ```
 
 
+### Why customer lifetime value (CLV) was not estimated
+
+CLV requires assumptions or evidence about future customer survival and contribution over time. This dataset is a single synthetic snapshot: it lacks longitudinal billing and churn histories. Signup dates and tenure are also inconsistent, which means we lack information for that.
+
+Using `monthly margin / churn probability` would therefore be misleading: the probability is not a validated per period churn rate. Instead, the simulator estimates **retained contribution over an assumed fixed period**, adjusted for churn risk, prevention effectiveness, and contact cost. The six-month default is an economic scenario assumption, not an estimated customer lifetime; its outputs are campaign value estimates, not CLV.
+
 ### A worked expected-value example
 
 Consider a customer with:
