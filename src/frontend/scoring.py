@@ -1,9 +1,3 @@
-"""Editable customer scorecard; all inference and SHAP computation use the API.
-
-The demo profile is illustrative, never fetched from a customer snapshot. Blank
-nullable fields are sent as null. Editing any input clears the previous result;
-no probability is presented as current until the user explicitly scores again.
-"""
 
 import logging
 from numbers import Real
@@ -101,7 +95,7 @@ def scoring_layout():
         ], className="page-header"),
         html.Div(
             "Predictions have no established time horizon. SHAP explains the model, "
-            "not causal effects. No contact recommendation or campaign selection is made.",
+            "not causal effects.",
             className="notice",
         ),
         html.Section([
@@ -118,7 +112,7 @@ def scoring_layout():
                     className="secondary",
                 ),
                 html.P(
-                    "The demo is a made-up profile, not a portfolio customer.",
+                    "The demo is a synthetic profile, not a portfolio customer.",
                     className="muted",
                 ),
             ], className="filter-actions"),

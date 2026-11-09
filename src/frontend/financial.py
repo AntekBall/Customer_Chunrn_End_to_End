@@ -1,10 +1,3 @@
-"""Financial scenario UI. Only explicit simulation calls allocate an audience.
-
-Controls display percentages; the API receives fractions. Changing any scenario
-or display filter clears prior results. Filters never define a new audience.
-No scenario is automatically run when opening the tab.
-"""
-
 import logging
 
 import plotly.graph_objects as go

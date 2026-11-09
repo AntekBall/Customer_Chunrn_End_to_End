@@ -1,9 +1,3 @@
-"""Portfolio Overview, Customer Scoring and Financial Simulator dashboard.
-
-Start the API first, then run `uv run python -m src.frontend.app`.
-CHURN_API_URL defaults to http://127.0.0.1:8000. This frontend performs no model
-loading or direct dataset reads. Use separate processes for the API and Dash.
-"""
 
 import logging
 import os
@@ -141,15 +135,14 @@ def _portfolio_layout():
                 html.P("CUSTOMER INTELLIGENCE / SNAPSHOT ANALYTICS", className="eyebrow"),
                 html.H1("Portfolio overview"),
                 html.P(
-                    "Explore revenue exposure and predicted churn with transparent, "
-                    "fixed-reference segments.", className="subtitle",
+                    "Explore revenue exposure and predicted churn", className="subtitle",
                 ),
             ]),
             html.Span("Synthetic data", className="badge"),
         ], className="page-header"),
         html.Div(
             "Descriptive estimates, not measured campaign returns. Training scores are "
-            "in-sample; the snapshot includes training, validation and test customers.",
+            "in sample; the snapshot includes training, validation and test customers.",
             className="notice",
         ),
         html.Section([

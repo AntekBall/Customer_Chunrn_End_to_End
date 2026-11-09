@@ -1,5 +1,3 @@
-"""HTTP-only dashboard data access; importing this module performs no I/O."""
-
 import math
 from typing import Annotated, Literal
 

@@ -1,11 +1,3 @@
-"""Dropdown vocabulary for the synthetic telecom dataset.
-
-Labels are presentation-only; values preserve the exact source spelling.
-The API still accepts unseen nonblank categories for programmatic inference.
-Update this vocabulary when supporting a different source dataset.
-"""
-
-
 CATEGORY_OPTIONS = {
     "gender": [
         {"label": "Female", "value": "Female"},
