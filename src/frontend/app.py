@@ -1,4 +1,4 @@
-"""Portfolio Overview dashboard.
+"""Portfolio Overview and Customer Scoring dashboard.
 
 Start the API first, then run `uv run python -m src.frontend.app`.
 CHURN_API_URL defaults to http://127.0.0.1:8000. This frontend performs no model
@@ -15,7 +15,9 @@ from pydantic import ValidationError
 
 from src.data.dashboard import PortfolioFilters
 from src.data.portfolio import REVENUE_SEGMENTS, RISK_SEGMENTS
+from src.frontend.categories import CATEGORY_OPTIONS
 from src.frontend.client import APIError, PortfolioClient, Summary
+from src.frontend.scoring import register_scoring_callbacks, scoring_layout
 
 
 logger = logging.getLogger(__name__)
@@ -131,7 +133,7 @@ def _table_rows(summary: Summary) -> list[dict]:
     return result
 
 
-def _layout():
+def _portfolio_layout():
     return html.Main([
         html.Header([
             html.Div([
@@ -158,14 +160,8 @@ def _layout():
                     {"label": "Has internet", "value": "yes"},
                     {"label": "No internet", "value": "no"},
                 ]),
-                html.Div([
-                    html.Label("Contract (exact value)", htmlFor="contract"),
-                    dcc.Input(id="contract", type="text", placeholder="All contracts"),
-                ], className="filter-field"),
-                html.Div([
-                    html.Label("Payment method (exact value)", htmlFor="payment"),
-                    dcc.Input(id="payment", type="text", placeholder="All methods"),
-                ], className="filter-field"),
+                _dropdown("Contract", "contract", CATEGORY_OPTIONS["contract"]),
+                _dropdown("Payment method", "payment", CATEGORY_OPTIONS["payment_method"]),
             ], className="filter-grid"),
             html.Div([
                 html.Button("Apply filters / refresh", id="apply", n_clicks=0),
@@ -231,6 +227,17 @@ def _layout():
     ], className="shell")
 
 
+def _layout():
+    return html.Div([
+        dcc.Tabs(id="dashboard-tab", value="portfolio", children=[
+            dcc.Tab(label="Portfolio Overview", value="portfolio"),
+            dcc.Tab(label="Customer Scoring", value="scoring"),
+        ], className="dashboard-tabs"),
+        html.Div(_portfolio_layout(), id="portfolio-panel"),
+        html.Div(scoring_layout(), id="scoring-panel", style={"display": "none"}),
+    ])
+
+
 def create_app(client: PortfolioClient | None = None) -> Dash:
     api = client if client is not None else PortfolioClient(
         os.environ.get("CHURN_API_URL", "http://127.0.0.1:8000")
@@ -243,13 +250,23 @@ def create_app(client: PortfolioClient | None = None) -> Dash:
     app.layout = _layout
 
     @app.callback(
+        Output("portfolio-panel", "style"), Output("scoring-panel", "style"),
+        Input("dashboard-tab", "value"),
+    )
+    def switch_tab(tab):
+        return (
+            {"display": "block" if tab == "portfolio" else "none"},
+            {"display": "block" if tab == "scoring" else "none"},
+        )
+
+    @app.callback(
         Output("partition", "value"), Output("revenue", "value"),
         Output("risk", "value"), Output("internet", "value"),
         Output("contract", "value"), Output("payment", "value"),
         Input("reset", "n_clicks"), prevent_initial_call=True,
     )
     def reset_filters(_clicks):
-        return None, None, None, None, "", ""
+        return None, None, None, None, None, None
 
     @app.callback(
         Output("summary-data", "data"), Output("error-message", "children"),
@@ -306,6 +323,7 @@ def create_app(client: PortfolioClient | None = None) -> Dash:
         )
         return _kpis(summary), _heatmap(summary, metric), _table_rows(summary), note, provenance
 
+    register_scoring_callbacks(app, api)
     return app
 
 

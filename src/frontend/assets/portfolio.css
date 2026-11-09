@@ -35,12 +35,18 @@ button:focus-visible, input:focus-visible { outline: 3px solid #73b6c3; outline-
 .result-note { font-size: 13px; color: #536880; margin-top: 15px; }
 #request-status { color: #536880; font-size: 12px; }
 .provenance { overflow-wrap: anywhere; font-size: 11px; padding: 0 4px 20px; }
+.dashboard-tabs { max-width: 1440px; margin: 20px auto 0; padding: 0 36px; }
+.score-fieldset { border: 0; padding: 0; margin: 26px 0; min-width: 0; }
+.score-fieldset legend { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+#score-card { margin: 18px 0; }
+#score-waterfall { margin: 18px 0; }
 @media (max-width: 1000px) {
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   .shell { padding: 22px 14px; }
+  .dashboard-tabs { padding: 0 14px; }
   .page-header, .panel-heading { flex-direction: column; }
   .filter-grid, .kpi-grid { grid-template-columns: 1fr; }
   .panel { padding: 17px; }

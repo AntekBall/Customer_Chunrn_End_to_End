@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.data.dashboard import PortfolioFilters
 from src.data.portfolio import REVENUE_SEGMENTS, RISK_SEGMENTS
+from src.models.pipeline import FEATURE_COLUMNS
 
 
 class APIError(RuntimeError):
@@ -63,6 +64,46 @@ class Summary(BaseModel):
         return self
 
 
+class Contribution(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    feature: str
+    feature_value: str | Finite | None
+    shap_log_odds: Finite
+
+
+class Explanation(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    customer_id: str
+    model_run_id: Annotated[str, Field(min_length=1)]
+    freeze_run_id: Annotated[str, Field(min_length=1)]
+    final_test_run_id: Annotated[str, Field(min_length=1)]
+    churn_probability: Probability
+    base_log_odds: Finite
+    raw_log_odds: Finite
+    output_scale: Literal["log_odds"]
+    method: Literal["native_catboost_tree_shap"]
+    interpretation: str
+    contributions: list[Contribution]
+
+    @model_validator(mode="after")
+    def reconstruct_output(self):
+        names = [row.feature for row in self.contributions]
+        if len(names) != len(FEATURE_COLUMNS) or set(names) != set(FEATURE_COLUMNS):
+            raise ValueError("Expected one SHAP contribution per predictor.")
+        raw = self.base_log_odds + sum(row.shap_log_odds for row in self.contributions)
+        if not math.isclose(raw, self.raw_log_odds, rel_tol=1e-6, abs_tol=1e-8):
+            raise ValueError("SHAP contributions do not reconstruct the raw output.")
+        exp_value = math.exp(-abs(self.raw_log_odds))
+        probability = (
+            1 / (1 + exp_value) if self.raw_log_odds >= 0 else exp_value / (1 + exp_value)
+        )
+        if not math.isclose(probability, self.churn_probability, rel_tol=1e-6, abs_tol=1e-8):
+            raise ValueError("SHAP output does not reconstruct the predicted probability.")
+        return self
+
+
 class PortfolioClient:
     def __init__(
         self, base_url: str, *, transport: httpx.BaseTransport | None = None,
@@ -78,22 +119,7 @@ class PortfolioClient:
             key: str(value).lower() if isinstance(value, bool) else str(value)
             for key, value in filters.model_dump(exclude_none=True).items()
         }
-        try:
-            with httpx.Client(
-                base_url=self._base_url, timeout=httpx.Timeout(30.0, connect=5.0),
-                transport=self._transport,
-            ) as client:
-                response = client.get("portfolio/summary", params=params)
-                response.raise_for_status()
-        except httpx.HTTPStatusError as error:
-            raise APIError(
-                f"Portfolio API returned HTTP {error.response.status_code}. "
-                "Check the API logs, then retry."
-            ) from error
-        except httpx.RequestError as error:
-            raise APIError(
-                "Cannot reach the portfolio API. Start the backend and check CHURN_API_URL."
-            ) from error
+        response = self._request("GET", "portfolio/summary", params=params)
         try:
             summary = Summary.model_validate(response.json())
         except ValueError as error:
@@ -101,3 +127,37 @@ class PortfolioClient:
         if summary.filters != filters:
             raise APIError("The portfolio API returned results for different filters.")
         return summary
+
+    def explain(self, customer: dict[str, object]) -> Explanation:
+        response = self._request("POST", "explain", json=customer)
+        try:
+            explanation = Explanation.model_validate(response.json())
+        except ValueError as error:
+            raise APIError("The API returned an invalid explanation response.") from error
+        if explanation.customer_id != customer["customer_id"] or any(
+            row.feature_value != customer[row.feature] for row in explanation.contributions
+        ):
+            raise APIError("The API returned an explanation for different customer inputs.")
+        return explanation
+
+    def _request(
+        self, method: str, endpoint: str, *,
+        params: dict[str, str] | None = None, json: dict[str, object] | None = None,
+    ) -> httpx.Response:
+        try:
+            with httpx.Client(
+                base_url=self._base_url, timeout=httpx.Timeout(30.0, connect=5.0),
+                transport=self._transport,
+            ) as client:
+                response = client.request(method, endpoint, params=params, json=json)
+                response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            raise APIError(
+                f"Churn API returned HTTP {error.response.status_code}. "
+                "Check the API logs, then retry."
+            ) from error
+        except httpx.RequestError as error:
+            raise APIError(
+                "Cannot reach the churn API. Start the backend and check CHURN_API_URL."
+            ) from error
+        return response
