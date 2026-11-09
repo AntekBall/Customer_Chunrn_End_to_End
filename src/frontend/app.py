@@ -84,16 +84,20 @@ def _heatmap(summary: Summary, metric: str) -> go.Figure:
         x=list(RISK_SEGMENTS), y=list(REVENUE_SEGMENTS), z=z,
         text=text, texttemplate="%{text}", colorscale="Teal",
         hovertemplate="%{y} / %{x}<br>" + title + ": %{text}<extra></extra>",
-        colorbar={"title": {"text": title}},
+        colorbar={
+            "title": {"text": title, "side": "bottom"},
+            "orientation": "h", "y": -.45, "thickness": 12,
+            "tickangle": 0, "nticks": 3,
+        },
         hoverongaps=False,
     ))
     if field == "mean_predicted_churn":
         figure.update_traces(colorbar_tickformat=".0%")
     figure.update_layout(
-        template="plotly_white", margin={"t": 20, "b": 30, "l": 10, "r": 10},
-        height=370, font={"family": "Segoe UI, sans-serif", "color": "#20334b"},
-        xaxis={"side": "bottom", "title": "Fixed training-reference risk band"},
-        yaxis={"autorange": "reversed"},
+        template="plotly_white", margin={"t": 20, "b": 160, "l": 95, "r": 10},
+        height=460, font={"family": "Segoe UI, sans-serif", "color": "#20334b"},
+        xaxis={"side": "bottom", "tickfont": {"size": 10}},
+        yaxis={"autorange": "reversed", "tickfont": {"size": 10}},
     )
     return figure
 

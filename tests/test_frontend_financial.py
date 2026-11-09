@@ -139,6 +139,9 @@ def test_simulation_callback_and_global_filter_semantics(portfolio):
     assert sum(
         sum(row) for row in result["finance-matrix"]["figure"]["data"][0]["z"]
     ) == pytest.approx(20)
+    figure = result["finance-matrix"]["figure"]
+    assert figure["data"][0]["colorbar"]["orientation"] == "h"
+    assert "<br>" in figure["layout"]["title"]["text"]
     assert "model" in result["finance-provenance"]["children"]
     filtered_values = DEFAULT_VALUES.copy()
     filtered_values[8] = "month_to_month"

@@ -239,13 +239,19 @@ def register_financial_callbacks(app: Dash, api: PortfolioClient):
         figure = go.Figure(go.Heatmap(
             z=z, x=list(RISK_SEGMENTS), y=list(REVENUE_SEGMENTS),
             colorscale="Teal", text=[[_number(value) for value in row] for row in z],
-            texttemplate="%{text}", colorbar={"title": "Expected net"},
+            texttemplate="%{text}", colorbar={
+                "title": {"text": "Expected net", "side": "bottom"},
+                "orientation": "h", "y": -.4, "thickness": 12,
+                "tickangle": 0, "nticks": 3,
+            },
             hovertemplate="%{y} / %{x}<br>Selected expected net: %{text}<extra></extra>",
         ))
         figure.update_layout(
-            template="plotly_white", height=400,
-            title="Displayed selected expected net value (scenario estimate)",
-            yaxis={"autorange": "reversed"}, margin={"l": 120, "r": 30, "b": 50, "t": 70},
+            template="plotly_white", height=460,
+            title={"text": "Selected expected net<br>(displayed scenario estimate)", "font": {"size": 14}},
+            yaxis={"autorange": "reversed", "tickfont": {"size": 10}},
+            xaxis={"tickfont": {"size": 10}},
+            margin={"l": 95, "r": 10, "b": 150, "t": 70},
         )
         table = []
         for cell in ordered:

@@ -142,6 +142,7 @@ def test_layout_assets_and_initial_load(payload):
     assert len(rendered["segment-table"]["data"]) == 12
     assert "Model: model" in rendered["provenance"]["children"]
     figure = rendered["segment-heatmap"]["figure"]["data"][0]
+    assert figure["colorbar"]["orientation"] == "h"
     assert len(figure["z"]) == 4
     assert all(len(row) == 3 for row in figure["z"])
     assert sum(sum(row) for row in figure["z"]) == 3
