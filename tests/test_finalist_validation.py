@@ -10,6 +10,7 @@ from threadpoolctl import threadpool_limits
 
 import experiments.finalist_validation as module
 from src.config import DEFAULT_CONFIG_PATH, TrainingConfig
+from src.models.evaluate import score_predictions, validate_partitions
 from src.models.pipeline import (
     BINARY_COLUMNS, CATEGORICAL_COLUMNS, NUMERIC_COLUMNS,
 )
@@ -54,7 +55,7 @@ def test_partition_guards(data, case):
     else:
         validation["churn"] = 0
     with pytest.raises(ValueError):
-        module.validate_partitions(training, validation)
+        validate_partitions(training, validation)
 
 
 @pytest.mark.parametrize("probabilities", [
@@ -62,12 +63,12 @@ def test_partition_guards(data, case):
 ])
 def test_probability_guards(config, data, probabilities):
     with pytest.raises(ValueError, match="probabilities"):
-        module.score_validation(data[1], probabilities, config)
+        score_predictions(data[1], probabilities, config)
 
 
 def test_metrics(config, data):
     validation = data[1]
-    result = module.score_validation(validation, validation["churn"].to_numpy(), config)
+    result = score_predictions(validation, validation["churn"].to_numpy(), config)
     assert result["average_precision"] == 1
     assert result["roc_auc"] == 1
     assert result["brier_score"] == 0

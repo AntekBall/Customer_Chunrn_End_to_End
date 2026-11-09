@@ -1,4 +1,3 @@
-import json
 import logging
 from pathlib import Path
 
@@ -9,8 +8,9 @@ from mlflow.tracking import MlflowClient
 
 from src.config import TrainingConfig, load_training_config
 from src.data.loader import DATA_PATH
+from src.models.artifacts import file_sha256, read_json
 from src.models.objective import make_objective
-from src.models.train import file_sha256, load_training_data
+from src.models.train import load_training_data
 
 
 SOURCE_RUNS = {
@@ -18,11 +18,6 @@ SOURCE_RUNS = {
     "xgboost": "2885f7d8db824bb9b54cb53711153a08",
 }
 POSITIVE_WEIGHTS = (1.0, 1.5, 2.0, 3.0)
-
-
-def read_json(client, run_id, filename):
-    path = client.download_artifacts(run_id, filename)
-    return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
 def main():

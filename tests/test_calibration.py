@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from experiments.check_calibration import calibration_report, reliability_figure
+from src.models.calibration import calibration_report, reliability_figure
 
 
 def test_constant_probabilities():

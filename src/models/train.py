@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import logging
 from pathlib import Path
 from uuid import uuid4
@@ -13,21 +12,12 @@ from src.config import DEFAULT_CONFIG_PATH, TrainingConfig, load_training_config
 from src.data.features import load_feature_view
 from src.data.loader import DATA_PATH, load_customers
 from src.data.splits import load_split_views
+from src.models.artifacts import file_sha256
 from src.models.model_builder import MODEL_NAMES
 from src.models.objective import make_objective
 
 
 logger = logging.getLogger(__name__)
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-
-    with path.open("rb") as file:
-        for block in iter(lambda: file.read(1024 * 1024), b""):
-            digest.update(block)
-
-    return digest.hexdigest()
 
 
 def load_training_data(config: TrainingConfig) -> pd.DataFrame:

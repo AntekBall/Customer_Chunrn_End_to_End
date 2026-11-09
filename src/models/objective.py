@@ -10,15 +10,10 @@ import numpy as np
 import optuna
 import pandas as pd
 from sklearn.exceptions import ConvergenceWarning
-from sklearn.metrics import (
-    average_precision_score,
-    brier_score_loss,
-    log_loss,
-    roc_auc_score,
-)
 from sklearn.model_selection import StratifiedKFold
 
 from src.config import TrainingConfig
+from src.models.evaluate import METRIC_FUNCTIONS
 from src.models.model_builder import MODEL_NAMES, ModelName
 from src.models.pipeline import FEATURE_COLUMNS
 from src.models.search_spaces import (
@@ -28,13 +23,6 @@ from src.models.search_spaces import (
 
 
 logger = logging.getLogger(__name__)
-
-METRIC_FUNCTIONS = {
-    "average_precision": average_precision_score,
-    "roc_auc": roc_auc_score,
-    "log_loss": log_loss,
-    "brier_score": brier_score_loss,
-}
 
 
 def make_objective(

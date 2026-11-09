@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from experiments.financial_policy import CampaignScenario, compare_policies
+from src.models.campaign import CampaignScenario, compare_policies
 
 
 def customers(charges):

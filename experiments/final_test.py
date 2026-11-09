@@ -9,11 +9,10 @@ import numpy as np
 import pandas as pd
 from mlflow.tracking import MlflowClient
 
-from experiments.check_calibration import calibration_report, reliability_figure
-from experiments.finalist_validation import (
-    current_provenance, read_json, score_validation,
-)
-from experiments.financial_policy import CampaignScenario, compare_policies
+from src.models.artifacts import current_provenance, read_json
+from src.models.calibration import calibration_report, reliability_figure
+from src.models.campaign import CampaignScenario, compare_policies
+from src.models.evaluate import score_predictions as score_validation
 from src.config import TrainingConfig, load_training_config
 from src.data.features import load_feature_view
 from src.data.loader import load_customers
