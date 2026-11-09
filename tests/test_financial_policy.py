@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from src.models.campaign import CampaignScenario, compare_policies
+from tests.helpers import model_config
 
 
 def customers(charges):
@@ -145,7 +146,7 @@ def test_main_logs_scenario_with_temporary_model(tmp_path, monkeypatch, capsys):
         frame["customer_id"] = [f"id-{i}" for i in range(20)]
         frame["churn"] = [0, 1] * 10
         frame["partition"] = "validation"
-        config = module.load_training_config()
+        config = model_config()
         config.mlflow.tracking_directory = str(tmp_path)
         provenance = {"raw_data": {"sha256": "synthetic"}}
         experiment_id = mlflow.create_experiment(

@@ -187,7 +187,7 @@ def test_snapshot_inconsistency_with_updated_checksums(snapshot, mutation):
 
 
 def test_scoring_writer_to_dashboard_reader(snapshot, monkeypatch):
-    from src.config import load_training_config
+    from tests.helpers import model_config
     from src.data import score_portfolio
     from src.models.pipeline import FEATURE_COLUMNS
     from src.models.predict import ChurnPredictor, ModelProvenance
@@ -207,7 +207,7 @@ def test_scoring_writer_to_dashboard_reader(snapshot, monkeypatch):
     output = score_portfolio.save_snapshot(
         frame.loc[:, ["customer_id", "partition", *FEATURE_COLUMNS]],
         predictor, directory / "writer-output", input_provenance=inputs,
-        config=load_training_config(), batch_size=2,
+        config=model_config(), batch_size=2,
     )
     with dashboard.open_portfolio(output) as connection:
         result = summary(connection)

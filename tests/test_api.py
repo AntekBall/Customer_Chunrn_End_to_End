@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src.api import main
-from src.config import load_training_config
+from tests.helpers import model_config
 from src.data import score_portfolio
 from src.models.model_builder import build_model_pipeline
 from src.models.pipeline import (
@@ -32,7 +32,7 @@ def fitted():
                    "avg_monthly_gb", "credit_score"):
         frame[column] = None
     frame["customer_id"] = [f"customer-{i}" for i in range(len(frame))]
-    model = build_model_pipeline("catboost", load_training_config())
+    model = build_model_pipeline("catboost", model_config())
     model.set_params(
         classifier__iterations=4, classifier__depth=2, classifier__thread_count=1,
     )
@@ -51,7 +51,7 @@ def setup(tmp_path, monkeypatch, fitted):
     output = score_portfolio.save_snapshot(
         frame.assign(partition=["train"] * 30 + ["validation"] * 5 + ["test"] * 5),
         predictor, tmp_path / "snapshot", input_provenance=inputs,
-        config=load_training_config(),
+        config=model_config(),
     )
     loads = []
     def load(cls, directory, *, final_test_run_id):

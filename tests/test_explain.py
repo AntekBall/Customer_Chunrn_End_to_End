@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from threadpoolctl import threadpool_limits
 
-from src.config import load_training_config
+from tests.helpers import model_config
 from src.models.explain import ChurnExplainer, waterfall_figure
 from src.models.model_builder import build_model_pipeline
 from src.models.pipeline import (
@@ -32,7 +32,7 @@ def customers():
 
 @pytest.fixture(scope="module")
 def predictor(customers):
-    pipeline = build_model_pipeline("catboost", load_training_config())
+    pipeline = build_model_pipeline("catboost", model_config())
     pipeline.set_params(
         classifier__iterations=8, classifier__depth=2, classifier__thread_count=1,
     )

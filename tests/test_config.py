@@ -93,6 +93,24 @@ def test_absolute_input_paths_are_preserved(tmp_path, valid_config):
     assert Path(config.data.feature_sql).is_absolute()
 
 
+@pytest.mark.parametrize("separator", ["/", "\\"])
+def test_both_relative_path_styles_resolve(tmp_path, valid_config, separator):
+    valid_config["data"]["split_manifest"] = separator.join(("data", "split.parquet"))
+    valid_config["data"]["feature_sql"] = separator.join(("sql", "features.sql"))
+    valid_config["mlflow"]["tracking_directory"] = separator.join(("outputs", "tracking"))
+    config = load_training_config(write_config(tmp_path, valid_config))
+    assert Path(config.data.split_manifest) == tmp_path / "data" / "split.parquet"
+    assert Path(config.data.feature_sql) == tmp_path / "sql" / "features.sql"
+    assert Path(config.mlflow.tracking_directory) == tmp_path / "outputs" / "tracking"
+
+
+def test_windows_absolute_path_is_not_mistaken_for_relative():
+    if Path("C:/").is_absolute():
+        pytest.skip("Foreign Windows absolute paths only apply on non-Windows hosts.")
+    with pytest.raises(ValueError, match="Windows absolute paths"):
+        config_module.resolve_project_path(r"C:\workspace\data\split.parquet")
+
+
 def test_loading_does_not_modify_config(tmp_path, valid_config):
     path = write_config(tmp_path, valid_config)
     original = path.read_bytes()

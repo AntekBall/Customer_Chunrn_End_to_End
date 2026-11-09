@@ -1,4 +1,4 @@
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Annotated, Generic, Literal, TypeVar
 
 import yaml
@@ -180,7 +180,12 @@ class UniqueKeySafeLoader(yaml.SafeLoader):
 
 
 def resolve_project_path(value: str) -> Path:
-    path = Path(value)
+    path = Path(value.replace("\\", "/"))
+    if PureWindowsPath(value).is_absolute() and not path.is_absolute():
+        raise ValueError(
+            "Windows absolute paths cannot be resolved on this platform. "
+            "Use a project-relative path or a native absolute path."
+        )
 
     if not path.is_absolute():
         path = PROJECT_ROOT / path
@@ -191,7 +196,7 @@ def resolve_project_path(value: str) -> Path:
 def load_training_config(
     path: Path = DEFAULT_CONFIG_PATH,
 ) -> TrainingConfig:
-    path = path if path.is_absolute() else PROJECT_ROOT / path
+    path = resolve_project_path(str(path))
 
     with path.open(encoding="utf-8") as file:
         contents = yaml.load(file, Loader=UniqueKeySafeLoader)

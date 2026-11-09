@@ -457,7 +457,7 @@ def test_scoring_client_integrates_with_real_api_and_synthetic_model():
     from fastapi.testclient import TestClient
 
     from src.api.main import Services, create_app as create_api
-    from src.config import load_training_config
+    from tests.helpers import model_config
     from src.frontend.scoring import DEMO_CUSTOMER, FORM_COLUMNS, customer_payload
     from src.models.explain import ChurnExplainer
     from src.models.model_builder import build_model_pipeline
@@ -467,7 +467,7 @@ def test_scoring_client_integrates_with_real_api_and_synthetic_model():
     customer = customer_payload([DEMO_CUSTOMER[column] for column in FORM_COLUMNS])
     frame = pd.DataFrame([customer] * 8)
     frame["age"] = np.arange(20, 28)
-    model = build_model_pipeline("catboost", load_training_config())
+    model = build_model_pipeline("catboost", model_config())
     model.set_params(
         classifier__iterations=2, classifier__depth=2, classifier__thread_count=1,
     )
