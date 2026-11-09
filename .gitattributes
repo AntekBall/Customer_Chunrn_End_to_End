@@ -1,0 +1,2 @@
+# Checksummed deployment artifacts must retain their exact bytes on every OS.
+/deploy/demo_bundle/** -text
