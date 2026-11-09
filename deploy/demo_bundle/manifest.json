@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "model_format": "catboost_cbm",
+  "preprocessing": "prepare_catboost_features_v1",
+  "created_at_utc": "2026-11-09T12:06:47.768223+00:00",
+  "provenance": {
+    "model_uri": "models:/m-ad9f690ee4684984851e58dfc305a401",
+    "source_finalist_run_id": "4b8fa8456a984b8da19bb09e4a5d2334",
+    "freeze_run_id": "336dc16d2407479c904736cc0e18f7d0",
+    "final_test_run_id": "5818be9683af42a485ffc2896a868137",
+    "calibration": "none"
+  },
+  "feature_columns": [
+    "age",
+    "annual_income",
+    "dependents",
+    "tenure",
+    "monthlycharges",
+    "totalcharges",
+    "num_services",
+    "customer_satisfaction",
+    "num_complaints",
+    "num_service_calls",
+    "late_payments",
+    "avg_monthly_gb",
+    "days_since_last_interaction",
+    "credit_score",
+    "gender",
+    "education",
+    "marital_status",
+    "contract",
+    "payment_method",
+    "paperless_billing",
+    "has_phone_service",
+    "has_internet_service",
+    "has_online_security",
+    "has_online_backup",
+    "has_device_protection",
+    "has_tech_support",
+    "has_streaming_tv",
+    "has_streaming_movies"
+  ],
+  "categorical_columns": [
+    "gender",
+    "education",
+    "marital_status",
+    "contract",
+    "payment_method"
+  ],
+  "package_versions": {
+    "catboost": "1.2.10",
+    "scikit-learn": "1.9.1",
+    "numpy": "2.5.4",
+    "pandas": "3.1.1",
+    "duckdb": "2.0.0"
+  },
+  "files": {
+    "model.cbm": "581b717e2eff93dd9a7317c9c93a0124a393be469145bceae94e477a66e43ce9",
+    "portfolio/customers.parquet": "79ae61085ad0d560262a42340a802a9217011c340f64da545e017a89175066f9",
+    "portfolio/thresholds.json": "01feb03618584b65655f9629111f5f563e85ab5bbf4a099c5a3ccd777a677bd6",
+    "portfolio/manifest.json": "2d12120e1767a847f79ef9aad64878a356403e02bcaa4605c17e55eaad50cd06"
+  }
+}

@@ -4,11 +4,8 @@ from numbers import Real
 from pathlib import Path
 from typing import Protocol
 
-import mlflow
-import mlflow.sklearn
 import numpy as np
 import pandas as pd
-from mlflow.tracking import MlflowClient
 
 from src.data.loader import NULLABLE_COLUMNS, SCHEMA
 from src.models.artifacts import read_json
@@ -128,6 +125,10 @@ class ChurnPredictor:
         database and model artifacts you generated. The input directory is the
         trust boundary; do not expose this loader as a public request parameter.
         """
+        import mlflow
+        import mlflow.sklearn
+        from mlflow.tracking import MlflowClient
+
         database = tracking_directory.resolve() / "mlflow.db"
         if not database.is_file():
             raise FileNotFoundError(f"MLflow database not found: {database}")

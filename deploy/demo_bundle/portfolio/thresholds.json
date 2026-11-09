@@ -1,0 +1,13 @@
+{
+  "model_run_id": "4b8fa8456a984b8da19bb09e4a5d2334",
+  "reference_rows": 700000,
+  "revenue_thresholds": [
+    85.47,
+    115.52,
+    145.18
+  ],
+  "risk_thresholds": [
+    0.08512581689786675,
+    0.17853639414547764
+  ]
+}

@@ -5,6 +5,7 @@ description = "Dynamic Customer Churn and Revenue-at-Risk Engine"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "a2wsgi>=1.10.10",
     "catboost>=1.2.10",
     "dash>=4.5.0",
     "duckdb>=2.0.0",
@@ -30,4 +31,18 @@ dev = [
     "ipykernel>=7.4.0",
     "nbformat>=4.2.0",
     "pytest>=9.2.0",
+]
+serving = [
+    "a2wsgi>=1.10.10",
+    "catboost>=1.2.10",
+    "dash>=4.5.0",
+    "duckdb>=2.0.0",
+    "fastapi>=0.162.0",
+    "httpx>=0.28.1",
+    "pandas>=3.1.1",
+    "plotly>=7.1.0",
+    "pydantic>=2.14.3",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.9.1",
+    "uvicorn>=0.54.0",
 ]

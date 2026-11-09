@@ -36,6 +36,17 @@ class PortfolioSummary:
     segments: pd.DataFrame
 
 
+class DemoMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    selection: Literal["partition_proportional_sha256_v1"]
+    seed: int
+    source_rows: int = Field(gt=0)
+    source_partition_rows: dict[str, int]
+    source_manifest_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    source_thresholds_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 def _validate_snapshot(
     connection: duckdb.DuckDBPyConnection, manifest: dict,
     thresholds: PortfolioThresholds,
@@ -48,7 +59,7 @@ def _validate_snapshot(
     if set(connection.table("portfolio").columns) != required:
         raise ValueError("Unexpected scored portfolio schema.")
     if (
-        manifest["schema_version"] != 1
+        manifest["schema_version"] not in (1, 2)
         or manifest["purpose"] != "descriptive_portfolio_not_model_evaluation"
         or manifest["contains_churn_labels"] is not False
         or manifest["contains_campaign_selection"] is not False
@@ -93,10 +104,27 @@ def _validate_snapshot(
     counts = dict(connection.sql(
         "SELECT partition, COUNT(*) FROM portfolio GROUP BY partition"
     ).fetchall())
+    reference_rows = counts.get("train", 0)
+    if manifest["schema_version"] == 2:
+        demo = DemoMetadata.model_validate(manifest["demo"])
+        if (
+            set(demo.source_partition_rows) != {"train", "validation", "test"}
+            or any(value <= 0 for value in demo.source_partition_rows.values())
+            or sum(demo.source_partition_rows.values()) != demo.source_rows
+            or not 0 < rows < demo.source_rows
+            or any(count > demo.source_partition_rows[name] for name, count in counts.items())
+            or thresholds.reference_rows != demo.source_partition_rows["train"]
+            or manifest["files"]["thresholds.json"]["sha256"]
+            != demo.source_thresholds_sha256
+        ):
+            raise ValueError("Invalid public demo reference metadata.")
+        reference_rows = demo.source_partition_rows["train"]
+    elif "demo" in manifest:
+        raise ValueError("Demo metadata requires snapshot schema version 2.")
     if (
         not rows or rows != manifest["rows"] or unique_ids != rows or invalid
         or counts != manifest["partition_rows"]
-        or counts.get("train", 0) != thresholds.reference_rows
+        or reference_rows != thresholds.reference_rows
         or manifest["includes_source_test_customers"] is not (counts.get("test", 0) > 0)
     ):
         raise ValueError("Snapshot rows, values, segments or provenance are inconsistent.")

@@ -1,0 +1,28 @@
+# Generate deploy/demo_bundle locally before deploying; no MLflow or training.
+# Commit only the generated synthetic demo with the application and lockfile.
+# In Render: New > Blueprint > select your repository > review Free plan.
+# Do not provision paid services/disks/databases. For a strict zero-bill demo,
+# do not attach a payment method; quota exhaustion can suspend service/builds.
+# Free services sleep after 15 minutes without traffic and wake in about a minute.
+# Local Windows memory checks do not replace verification of Render's memory chart.
+services:
+  - type: web
+    name: churn-engine-demo
+    runtime: python
+    plan: free
+    buildCommand: uv sync --locked --only-group serving
+    startCommand: uv run --locked --only-group serving python -m src.web
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.12
+      - key: UV_PYTHON_DOWNLOADS
+        value: never
+      - key: CHURN_BUNDLE_DIRECTORY
+        value: deploy/demo_bundle
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"

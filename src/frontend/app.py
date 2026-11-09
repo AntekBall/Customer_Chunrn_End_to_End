@@ -225,8 +225,10 @@ def _portfolio_layout():
     ], className="shell")
 
 
-def _layout():
+def _layout(demo_notice: str | None = None):
     return html.Div([
+        *([html.Div(demo_notice, id="demo-notice", className="notice", role="note")]
+          if demo_notice is not None else []),
         dcc.Tabs(id="dashboard-tab", value="portfolio", children=[
             dcc.Tab(label="Portfolio Overview", value="portfolio"),
             dcc.Tab(label="Customer Scoring", value="scoring"),
@@ -238,7 +240,9 @@ def _layout():
     ])
 
 
-def create_app(client: PortfolioClient | None = None) -> Dash:
+def create_app(
+    client: PortfolioClient | None = None, *, demo_notice: str | None = None,
+) -> Dash:
     api = client if client is not None else PortfolioClient(
         os.environ.get("CHURN_API_URL", "http://127.0.0.1:8000")
     )
@@ -247,7 +251,7 @@ def create_app(client: PortfolioClient | None = None) -> Dash:
         assets_folder=str(Path(__file__).with_name("assets")),
         update_title="Loading portfolio...",
     )
-    app.layout = _layout
+    app.layout = lambda: _layout(demo_notice)
 
     @app.callback(
         Output("portfolio-panel", "style"), Output("scoring-panel", "style"),
